@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import WorldMap from './WorldMap';
 
 export default function EqualityDashboard() {
   const [stats, setStats] = useState({
@@ -10,8 +9,9 @@ export default function EqualityDashboard() {
     topIndustry: 'Loading...'
   });
 
-  const [chartData, setChartData] = useState([]);
-  const [view, setView] = useState('country'); // 'country' | 'industry'
+  const [countryData, setCountryData] = useState([]);
+  const [selectedCountries, setSelectedCountries] = useState([]);
+  const [filters, setFilters] = useState({ sector: '', group: '', search: '' });
 
   useEffect(() => {
     fetch('http://localhost:8000/summary')
@@ -19,111 +19,107 @@ export default function EqualityDashboard() {
       .then(data => setStats(data))
       .catch(err => console.error('Failed to fetch stats:', err));
 
-    fetchData(view);
-  }, [view]);
-
-  const fetchData = (type) => {
-    const url =
-      type === 'industry'
-        ? 'http://localhost:8000/average-by-industry'
-        : 'http://localhost:8000/average-by-country';
-
-    fetch(url)
+    fetch('http://localhost:8000/countries')
       .then(res => res.json())
-      .then(data => setChartData(data))
-      .catch(err => console.error('Failed to fetch chart data:', err));
+      .then(data => setCountryData(data))
+      .catch(err => console.error('Failed to fetch countries:', err));
+  }, []);
+
+  const filteredGroups = filters.sector
+    ? [...new Set(countryData.filter(d => d.Sector === filters.sector).map(d => d.Group))].sort()
+    : [...new Set(countryData.map(d => d.Group))].sort();
+
+  const filteredData = countryData.filter(c => {
+    const countryMatch = selectedCountries.length === 0 || selectedCountries.includes(c.Country);
+    const sectorMatch = !filters.sector || c.Sector === filters.sector;
+    const groupMatch = !filters.group || c.Group === filters.group;
+    return countryMatch && sectorMatch && groupMatch;
+  });
+
+  const uniqueCountries = [...new Set(countryData.map(d => d.Country))].sort();
+  const uniqueSectors = [...new Set(countryData.map(d => d.Sector))].sort();
+
+  const handleCountryToggle = (country) => {
+    setSelectedCountries(prev =>
+      prev.includes(country)
+        ? prev.filter(c => c !== country)
+        : [...prev, country]
+    );
   };
+
+  const handleSelectAllCountries = () => {
+    setSelectedCountries(uniqueCountries);
+  };
+
+  const aggregatedScore = filteredData.length
+    ? (filteredData.reduce((acc, curr) => acc + curr['Total Score'], 0) / filteredData.length).toFixed(2)
+    : 'Not available';
+
+  const aggregatedFemale = filteredData.length
+    ? (filteredData.reduce((acc, curr) => acc + parseFloat(curr['Female %'] || 0), 0) / filteredData.length).toFixed(2)
+    : 'Not available';
 
   return (
     <main className="min-h-screen bg-black text-white font-sans px-6 py-20">
-      <div className="max-w-7xl mx-auto flex flex-col gap-24">
-
-        {/* Hero */}
-        <motion.section
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center space-y-6"
-        >
-          <h1 className="text-6xl font-extrabold tracking-tight leading-tight">
-            Workforce Equality Intelligence
-          </h1>
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-            Explore gender equality trends across countries and industries. Built for transparency. Powered by open data.
-          </p>
+      <div className="max-w-7xl mx-auto">
+        <motion.section initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center space-y-6 mb-16">
+          <h1 className="text-6xl font-extrabold tracking-tight leading-tight">Workforce Equality Intelligence</h1>
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">Explore gender equality trends across countries and industries. Built for transparency. Powered by open data.</p>
         </motion.section>
 
-        {/* Summary Cards */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8"
-        >
-          <StatCard title="Global Avg Score" value={stats.averageScore} color="text-blue-500" />
-          <StatCard title="Top Region" value={stats.topRegion} color="text-green-400" />
-          <StatCard title="Top Industry" value={stats.topIndustry} color="text-purple-400" />
-        </motion.section>
+        <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-12 items-start">
+          <div className="space-y-6">
+            <button onClick={handleSelectAllCountries} className="bg-blue-600 text-white px-4 py-2 rounded-lg w-full">Select All Countries</button>
 
-        {/* Chart Section */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
-          className="space-y-6"
-        >
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <h2 className="text-2xl font-semibold">Average Equality Score by {view === 'industry' ? 'Industry' : 'Country'}</h2>
-            <div className="space-x-2">
-              <button
-                onClick={() => setView('country')}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium ${view === 'country' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`}
-              >
-                Country
-              </button>
-              <button
-                onClick={() => setView('industry')}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium ${view === 'industry' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`}
-              >
-                Industry
-              </button>
+            <input
+              type="text"
+              placeholder="Search countries..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="bg-zinc-800 text-white p-2 rounded w-full"
+            />
+
+            <div className="bg-zinc-900 border border-zinc-700 rounded p-4">
+              <h4 className="text-sm uppercase tracking-widest text-gray-400 mb-2">Countries</h4>
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {uniqueCountries.filter(c => c.toLowerCase().includes(filters.search.toLowerCase())).map(c => (
+                  <label key={c} className="flex items-center gap-2 cursor-pointer hover:bg-zinc-800 px-2 py-1 rounded">
+                    <input
+                      type="checkbox"
+                      checked={selectedCountries.includes(c)}
+                      onChange={() => handleCountryToggle(c)}
+                      className="accent-blue-600"
+                    />
+                    <span>{c}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <select onChange={e => setFilters(f => ({ ...f, sector: e.target.value, group: '' }))} className="bg-zinc-800 text-white p-2 rounded w-full">
+              <option value="">All Sectors</option>
+              {uniqueSectors.map(s => <option key={s}>{s}</option>)}
+            </select>
+
+            <select onChange={e => setFilters(f => ({ ...f, group: e.target.value }))} className="bg-zinc-800 text-white p-2 rounded w-full">
+              <option value="">All Groups</option>
+              {filteredGroups.map(g => <option key={g}>{g}</option>)}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-10">
+            <WorldMap onCountrySelect={handleCountryToggle} selectedCountries={selectedCountries} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-zinc-900 p-6 rounded-2xl shadow-inner">
+                <StatCard title="Average Equality Score" value={aggregatedScore !== null ? `${aggregatedScore} / 100` : 'Not available'} color="text-green-400" />
+              </div>
+              <div className="bg-zinc-900 p-6 rounded-2xl shadow-inner">
+                <StatCard title="Average Female Workforce %" value={aggregatedFemale !== null ? `${aggregatedFemale}%` : 'Not available'} color="text-pink-400" />
+              </div>
             </div>
           </div>
-          <div className="bg-zinc-900 rounded-2xl p-6 overflow-x-auto">
-            <div style={{ width: Math.max(1000, chartData.length * 60), height: 360 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2f2f2f" />
-                  <XAxis
-                    dataKey={view === 'industry' ? 'industry' : 'country'}
-                    stroke="#ccc"
-                    angle={-25}
-                    textAnchor="end"
-                    interval={0}
-                  />
-                  <YAxis stroke="#ccc" />
-                  <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none' }} />
-                  <Bar dataKey="avg_score" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Locked Placeholder */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          className="rounded-2xl border border-dashed border-gray-700 bg-gray-900/50 backdrop-blur p-10 text-center"
-        >
-          <Lock className="h-6 w-6 mx-auto text-gray-500 mb-2" />
-          <h3 className="text-xl font-semibold">Company Profiles</h3>
-          <p className="text-gray-400 mb-4">Detailed company stats available with Pro Access</p>
-          <button disabled className="bg-gray-800 text-gray-400 px-4 py-2 rounded-xl cursor-not-allowed">
-            Coming Soon
-          </button>
-        </motion.section>
+        </div>
       </div>
     </main>
   );
@@ -131,7 +127,7 @@ export default function EqualityDashboard() {
 
 function StatCard({ title, value, color }) {
   return (
-    <div className="bg-zinc-900 p-8 rounded-2xl shadow-inner text-center space-y-2">
+    <div className="text-center space-y-2">
       <h4 className="text-sm uppercase tracking-widest text-gray-500">{title}</h4>
       <p className={`text-4xl font-bold ${color}`}>{value}</p>
     </div>

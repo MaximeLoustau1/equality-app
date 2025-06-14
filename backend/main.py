@@ -7,7 +7,7 @@ app = FastAPI()
 # Allow frontend access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -19,7 +19,6 @@ DB_PATH = "equality_dashboard.sqlite"
 def get_average_by_industry():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-
     cur.execute("""
         SELECT company_scores."Sector", ROUND(AVG(CAST("Total weighted" AS FLOAT)), 2) as avg_score
         FROM company_scores
@@ -29,7 +28,6 @@ def get_average_by_industry():
     """)
     rows = cur.fetchall()
     conn.close()
-
     return [{"industry": row[0], "avg_score": row[1]} for row in rows if row[0]]
 
 
@@ -37,7 +35,6 @@ def get_average_by_industry():
 def get_average_by_country():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-
     cur.execute("""
         SELECT company_scores."Country Evaluation", ROUND(AVG(CAST("Total weighted" AS FLOAT)), 2) as avg_score
         FROM company_scores
@@ -47,7 +44,6 @@ def get_average_by_country():
     """)
     rows = cur.fetchall()
     conn.close()
-
     return [{"country": row[0], "avg_score": row[1]} for row in rows if row[0]]
 
 
@@ -56,11 +52,9 @@ def get_summary():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
 
-    # ✅ 1. Global average score
     cur.execute('SELECT AVG(CAST("Total weighted" AS FLOAT)) FROM company_scores')
     avg_score = round(cur.fetchone()[0], 2)
 
-    # ✅ 2. Top region (by Country Evaluation)
     cur.execute("""
         SELECT company_scores."Country Evaluation", 
                ROUND(AVG(CAST("Total weighted" AS FLOAT)), 2) AS avg_score
@@ -73,7 +67,6 @@ def get_summary():
     top_region = cur.fetchone()
     top_region_str = f"{top_region[0]} (Avg. {top_region[1]})"
 
-    # ✅ 3. Top industry (by Sector)
     cur.execute("""
         SELECT company_scores."Sector", 
                ROUND(AVG(CAST("Total weighted" AS FLOAT)), 2) AS avg_score
@@ -93,3 +86,57 @@ def get_summary():
         "topRegion": top_region_str,
         "topIndustry": top_industry_str
     }
+
+
+@app.get("/countries")
+def get_country_data():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT company_scores."Country", 
+               company_scores."Sector", 
+               company_scores."Group", 
+               company_scores."Total weighted",
+                company_data."A4. Workforce"
+                
+        FROM company_scores
+        JOIN company_data USING(Name)
+    """)
+    rows = cur.fetchall()
+    columns = [desc[0] for desc in cur.description]
+    conn.close()
+
+    result = []
+    for row in rows:
+        record = dict(zip(columns, row))
+        raw_score = record.pop("Total weighted")
+        female_pct = record.pop("A4. Workforce")
+        try:
+            record["Total Score"] = float(raw_score)
+            record["Female %"] = float(female_pct)
+            result.append(record)
+        except (ValueError, TypeError):
+            continue  # Skip rows with invalid score
+
+    return result
+
+
+
+@app.get("/countries-average-score")
+def get_country_average_scores():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT company_scores."Country", 
+               ROUND(AVG(CAST("Total weighted" AS FLOAT)), 2) AS score
+        FROM company_scores
+        JOIN company_data USING(Name)
+        GROUP BY company_scores."Country"
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
+    return [{"country": row[0].strip(), "score": row[1]} for row in rows if row[0]]
+
