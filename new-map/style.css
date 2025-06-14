@@ -1,0 +1,242 @@
+body {
+    font-family: sans-serif;
+    color: #fff;
+    background-color: #151218;
+}
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+
+/*Custom Scrollbar Design*/
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #2d2733;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+     background: #555;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+background: #dcbfff;
+}
+
+.world-map {
+    position: absolute;
+    top: 0;
+    left: 250px; /* Leave space for country-list-panel */
+    right: 0;
+    width: calc(100% - 250px);
+    height: 100vh;
+    background-color: #151218;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+svg {
+    width: 60%;
+    height: 60vh;
+    margin: 0 auto;
+}
+
+path {
+    fill: #443d4b;
+    stroke: #dcbfff;
+    transition: 100ms;
+}
+
+path:hover {
+    fill: #c99aff;
+}
+
+.side-panel {
+    position: fixed;
+    background-color: #1d1a20;
+    padding: 2em;
+    top: 0;
+    right: -30em;
+    width: 100%;
+    max-width: 30em;
+    height: 100vh;
+    transition: 600ms cubic-bezier(0.77, 0, 0.18, 1);
+    overflow: scroll;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.side-panel .container {
+    padding-block: 2em;
+    transition: 200ms ease-out;
+    text-align: center;
+    width: 100%;
+}
+
+/*Dynamic classes for JavaScript */
+.side-panel-open {right: 0;}
+.hide {opacity: 0;}
+
+.close-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5em;
+    height: 5em;
+    border: none;
+    background-color: #443d4b;
+    color: #fff;
+    transition: 100ms;
+    cursor: pointer;
+}
+
+.loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    user-select: none;
+    transition: 200ms;
+}
+
+.country-name {
+    font-size: 3em;
+    color: #dcbfff;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+.close-btn i {
+    font-size: 2em;
+}
+
+.close-btn:hover {
+    background-color: #967eb1;
+}
+
+.country-flag {
+    width: 60%;
+    max-width: 20em;
+    margin-block: 1em;
+}
+
+.side-panel .container > ul {
+margin-top: 2em;
+list-style: none;
+}
+
+.side-panel .container > ul > li {
+margin-bottom: 2em;
+}
+
+.side-panel li {
+margin-bottom: 1em;
+font-size: 1.2em;
+}
+
+.side-panel ul ul {
+margin-top: 1em;
+font-size: 0.7em;
+list-style: circle;
+padding-left: 2em;
+}
+
+.side-panel strong {
+color: #dcbfff;
+}
+
+/* Country List Panel Styles */
+.country-list-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 250px;
+    height: 100vh;
+    background-color: rgba(29, 26, 32, 0.9);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    overflow-y: auto;
+    z-index: 2;
+    border-right: 1px solid rgba(220, 191, 255, 0.3);
+}
+
+.country-list-panel h2 {
+    color: #dcbfff;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.search-box {
+    margin-bottom: 20px;
+}
+
+#country-search {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: rgba(68, 61, 75, 0.5);
+    border: 1px solid rgba(220, 191, 255, 0.3);
+    color: #fff;
+    border-radius: 4px;
+}
+
+#country-search:focus {
+    outline: none;
+    border-color: #dcbfff;
+}
+
+.country-list {
+    list-style: none;
+}
+
+.country-list li {
+    padding: 8px 12px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.country-list li:hover {
+    background-color: rgba(201, 154, 255, 0.3);
+}
+
+.country-list li.active {
+    background-color: rgba(201, 154, 255, 0.5);
+    font-weight: bold;
+}
+/* Add zoom and pan controls */
+.map-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 270px;
+    z-index: 3;
+    display: flex;
+    gap: 10px;
+}
+
+.map-controls button {
+    background-color: rgba(68, 61, 75, 0.7);
+    border: 1px solid rgba(220, 191, 255, 0.5);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.map-controls button:hover {
+    background-color: rgba(201, 154, 255, 0.5);
+}
