@@ -5,4 +5,5 @@ pip install fastapi uvicorn
 uvicorn main:app --reload  
 
 
-then rerun npm run build, npm run start
+then in another terminal: npm run build +  npm run start
+(both the backend server and the vite server should be running for it to work)
